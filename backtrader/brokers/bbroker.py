@@ -850,7 +850,7 @@ class BackBroker(bt.BrokerBase):
     def _try_exec_historical(self, order):
         self._execute(order, ago=0, price=order.created.price)
 
-    def _try_exec_market(self, order, popen, phigh, plow):
+    def _try_exec_market(self, order, popen, phigh, plow, pcreated):
         ago = 0
         if self.p.coc and order.info.get('coc', True):
             dtcoc = order.created.dt
@@ -860,7 +860,10 @@ class BackBroker(bt.BrokerBase):
                 return    # can only execute after creation time
 
             dtcoc = None
-            exprice = popen
+            if plow <= pcreated <= phigh:
+                exprice = pcreated
+            else:
+                exprice = popen
 
         if order.isbuy():
             p = self._slip_up(phigh, exprice, doslip=self.p.slip_open)
@@ -1057,7 +1060,7 @@ class BackBroker(bt.BrokerBase):
         plimit = order.created.pricelimit
 
         if order.exectype == Order.Market:
-            self._try_exec_market(order, popen, phigh, plow)
+            self._try_exec_market(order, popen, phigh, plow, pcreated)
 
         elif order.exectype == Order.Close:
             self._try_exec_close(order, pclose)
